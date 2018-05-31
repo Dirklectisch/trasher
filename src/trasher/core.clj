@@ -107,7 +107,7 @@
 (defn -main
   []
   (doseq [{:keys [::file-path]} (find-old-files downloads-path-name)]
-    (println file-path))
+    (move-to-trash file-path))
   (shutdown-agents))
 
 (comment

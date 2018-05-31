@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>ams.geurs.trasher</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/trasher</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>08</integer>
+        <key>Minute</key>
+        <integer>00</integer>
+    </dict>
+    <key>UserName</key>
+    <string>dirk</string>
+</dict>
+</plist>
