@@ -65,15 +65,16 @@
                   (merge file-meta
                          {::file-path file-path}
                          (if (= file-type "public.folder")
-                           {::is-empty? (is-empty-folder? file-path)}
-                           {}))))))))
+                           {::is-folder? true
+                            ::is-empty? (is-empty-folder? file-path)}
+                           {::is-folder? false}))))))))
 
 (defn get-spotlight-metadata
   [attributes target-dir]
   (let [cmd-names (apply str (interpose " -name " attributes))
         cmd (apply str (interpose " " ["mdls -name" cmd-names (str target-dir "/*")]))
         files (parse-spotlight-out (sh-bash cmd) (count attributes) target-dir)
-        folders (filter #(= "public.folder" (::file-type %)) files)
+        folders (filter ::is-folder? files)
         sub-files (mapcat #(get-spotlight-metadata attributes (::file-path %)) folders)]
     (into files sub-files)))
 
@@ -82,9 +83,9 @@
 
 (defn is-old-file?
   [file-meta]
-  (let [{:keys [::date-added ::date-opened ::is-empty?]} file-meta]
-    (if is-empty?
-      true
+  (let [{:keys [::date-added ::date-opened ::is-folder? ::is-empty?]} file-meta]
+    (if is-folder?
+      is-empty?
       (and
         (< (.getTime ^Date date-added) year-ago-millis)
         (or
@@ -112,4 +113,5 @@
 
 (comment
   (user/refresh)
+  (find-old-files downloads-path-name)
   (-main))
