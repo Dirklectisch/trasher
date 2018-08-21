@@ -3,6 +3,7 @@
             [clojure.java.io :as io]
             [clojure.string :refer [split-lines]])
   (:import (java.lang System)
+           (java.io File)
            (java.util Date)
            (java.text SimpleDateFormat)
            (java.text ParsePosition))
@@ -15,7 +16,7 @@
 
 (defn is-empty-folder?
   [path-name]
-  (empty? (.list (io/file path-name))))
+  (empty? (filter #(not (.isHidden ^File %)) (.listFiles (io/file path-name)))))
 
 (defn sh-bash
   [cmd]
@@ -60,21 +61,21 @@
                                   value (parse-spotlight-value value-str)]
                               {key value})))
                      (apply merge))))
-         (map (fn [{:keys [::file-type] :as file-meta}]
-                (let [file-path (str target-dir "/" (::file-name file-meta))]
-                  (merge file-meta
-                         {::file-path file-path}
-                         (if (= file-type "public.folder")
-                           {::is-folder? true
-                            ::is-empty? (is-empty-folder? file-path)}
-                           {::is-folder? false}))))))))
+         (mapv (fn [{:keys [::file-type] :as file-meta}]
+                 (let [file-path (str target-dir "/" (::file-name file-meta))]
+                   (merge file-meta
+                          {::file-path file-path}
+                          (if (= file-type "public.folder")
+                            {::is-folder? true
+                             ::is-empty? (is-empty-folder? file-path)}
+                            {::is-folder? false}))))))))
 
 (defn get-spotlight-metadata
   [attributes target-dir]
   (let [cmd-names (apply str (interpose " -name " attributes))
-        cmd (apply str (interpose " " ["mdls -name" cmd-names (str target-dir "/*")]))
+        cmd (apply str (interpose " " ["mdls -name" cmd-names (str "\"" target-dir "/\"*")]))
         files (parse-spotlight-out (sh-bash cmd) (count attributes) target-dir)
-        folders (filter ::is-folder? files)
+        folders (filter (every-pred ::is-folder? #(not (::is-empty? %))) files)
         sub-files (mapcat #(get-spotlight-metadata attributes (::file-path %)) folders)]
     (into files sub-files)))
 
@@ -87,7 +88,9 @@
     (if is-folder?
       is-empty?
       (and
-        (< (.getTime ^Date date-added) year-ago-millis)
+        (or
+          (= date-added nil)
+          (< (.getTime ^Date date-added) year-ago-millis))
         (or
           (= date-opened nil)
           (< (.getTime ^Date date-opened) year-ago-millis))))))
@@ -107,8 +110,8 @@
 
 (defn -main
   []
-  (doseq [{:keys [::file-path]} (find-old-files downloads-path-name)]
-    (move-to-trash file-path))
+  (doseq [{:keys [::file-name ::file-path]} (find-old-files downloads-path-name)]
+    (if file-name (move-to-trash file-path)))
   (shutdown-agents))
 
 (comment
